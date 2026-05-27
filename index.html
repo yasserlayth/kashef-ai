@@ -121,17 +121,37 @@
   .result { display:none;animation:fadeUp 0.5s ease both; }
   .result.show { display:block; }
 
-  /* SELF-PREDICTION BANNER */
-  .self-pred { background:linear-gradient(135deg,rgba(201,163,84,0.08),rgba(201,163,84,0.03));
-    border:1px solid rgba(201,163,84,0.25);border-radius:16px;padding:1.25rem;margin-bottom:1.25rem;
-    display:flex;align-items:flex-start;gap:1rem; }
-  .self-pred-icon { font-size:28px;flex-shrink:0; }
-  .self-pred-body { flex:1; }
-  .self-pred-title { font-size:13px;font-weight:600;color:var(--gold);margin-bottom:4px; }
-  .self-pred-text { font-size:13px;color:var(--text2);line-height:1.7; }
-  .self-pred-conf { font-family:var(--mono);font-size:11px;color:var(--text3);margin-top:6px; }
-  .conf-bar { height:3px;background:var(--surface3);border-radius:2px;overflow:hidden;margin-top:4px;width:200px;max-width:100%; }
-  .conf-fill { height:100%;background:var(--gold);border-radius:2px;transition:width 1s ease; }
+  /* PARAPHRASE DETECTION */
+  .para-section { background:linear-gradient(135deg,rgba(94,184,255,0.07),rgba(94,184,255,0.02));
+    border:1px solid rgba(94,184,255,0.25);border-radius:16px;padding:1.25rem;margin-bottom:1.25rem; }
+  .para-header { display:flex;align-items:center;gap:10px;margin-bottom:12px; }
+  .para-icon { font-size:24px;flex-shrink:0; }
+  .para-title { font-size:14px;font-weight:600;color:#5eb8ff; }
+  .para-badge { font-size:11px;font-family:var(--mono);padding:3px 10px;border-radius:20px;border:1px solid;margin-right:auto; }
+  .para-badge.high { color:#ff4757;border-color:rgba(255,71,87,0.4);background:rgba(255,71,87,0.08); }
+  .para-badge.medium { color:#ffa502;border-color:rgba(255,165,2,0.4);background:rgba(255,165,2,0.08); }
+  .para-badge.low { color:#2ed573;border-color:rgba(46,213,115,0.4);background:rgba(46,213,115,0.08); }
+  .para-signals { display:flex;flex-wrap:wrap;gap:8px;margin-top:10px; }
+  .para-signal { font-size:12px;color:var(--text2);background:var(--surface2);border:1px solid var(--border);
+    border-radius:8px;padding:5px 12px;display:flex;align-items:center;gap:5px; }
+  .para-desc { font-size:13px;color:var(--text2);line-height:1.8;margin-top:8px; }
+
+  /* ORIGIN ANALYSIS */
+  .origin-section { background:var(--surface);border:1px solid var(--border);border-radius:16px;
+    padding:1.25rem;margin-bottom:1.25rem; }
+  .origin-header { display:flex;align-items:center;gap:10px;margin-bottom:14px; }
+  .origin-title { font-size:13px;font-weight:500;color:var(--text2);flex:1; }
+  .origin-grid { display:grid;grid-template-columns:1fr 1fr;gap:10px; }
+  @media(max-width:520px){ .origin-grid { grid-template-columns:1fr; } }
+  .origin-card { background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:1rem; }
+  .origin-card-title { font-size:11px;color:var(--text3);margin-bottom:8px;display:flex;align-items:center;gap:5px; }
+  .origin-card-val { font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px; }
+  .origin-card-desc { font-size:12px;color:var(--text2);line-height:1.7; }
+  .origin-timeline { margin-top:12px;border-top:1px solid var(--border);padding-top:12px; }
+  .origin-timeline-title { font-size:12px;color:var(--text3);margin-bottom:8px; }
+  .origin-step { display:flex;gap:12px;align-items:flex-start;margin-bottom:8px; }
+  .origin-dot { width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:5px; }
+  .origin-step-text { font-size:12px;color:var(--text2);line-height:1.6; }
 
   /* VERDICT CARD */
   .verdict-card { border-radius:20px;padding:1.75rem;border:1px solid;margin-bottom:1.25rem;
@@ -293,7 +313,7 @@
     </div>
     <h1>كاشف نصوص الذكاء الاصطناعي</h1>
     <p class="subtitle">يستخدم Claude لتحليل النصوص وتمييز الكتابة الآلية عن البشرية بدقة عالية</p>
-    <div class="version-badge">v2.0 — PDF + توقع ذاتي + إحصاءات</div>
+    <div class="version-badge">v3.0 — كشف إعادة الصياغة + تحليل الأصل</div>
   </div>
 
   <!-- INFO SECTIONS -->
@@ -414,7 +434,7 @@
           <div class="warning-icon">✏️</div>
           <div class="warning-body">
             <div class="warning-title">النصوص المُعدَّلة يدوياً بعد AI</div>
-            <div class="warning-desc">إذا أُنتج النص بـ AI ثم عُدِّل بشكل موسّع من قِبَل إنسان، قد تُصنِّفه الأداة على أنه بشري أو مزيج. التعديل البشري الجوهري يُغيّر الأنماط اللغوية.</div>
+            <div class="warning-desc">إذا أُنتج النص بـ AI ثم أُعيدت صياغته عبر أدوات مثل QuillBot أو مُعدِّل يدوياً، تعمل خوارزمية كشف إعادة الصياغة الجديدة على رصد هذه الأنماط المخفية. التعديل البشري الجوهري قد يُغيّر الأنماط جزئياً.</div>
           </div>
         </div>
         <div class="warning-item yellow">
@@ -453,7 +473,7 @@
       <div class="faq-list">
         <div class="faq-item">
           <div class="faq-q" onclick="toggleFaq(this)">ما دقة الأداة؟<span class="faq-chevron">▼</span></div>
-          <div class="faq-a">تصل الدقة إلى 85–90% على نصوص واضحة الأصل (AI نقي أو بشري نقي). النصوص المختلطة أو المُعدَّلة تكون دقتها أقل. يتضمن التقرير دائماً مؤشر "ثقة الأداة بتوقعها" الذي يُخبرك بمدى موثوقية هذا التحليل تحديداً.</div>
+          <div class="faq-a">تصل الدقة إلى 85–90% على نصوص واضحة الأصل (AI نقي أو بشري نقي). النصوص المختلطة أو المُعاد صياغتها تكون دقتها أقل. يتضمن التقرير تحليلاً لكشف إعادة الصياغة وتحديد أصل النص لمزيد من الدقة.</div>
         </div>
         <div class="faq-item">
           <div class="faq-q" onclick="toggleFaq(this)">هل بياناتي آمنة؟<span class="faq-chevron">▼</span></div>
@@ -464,8 +484,8 @@
           <div class="faq-a">تعني هذه النتيجة أن النص يحتوي على أنماط من كلا النوعين. أسباب شائعة: النص كتبه إنسان ثم راجعه AI، أو العكس، أو أن الكاتب اعتمد أسلوباً رسمياً جداً يشبه أسلوب AI. تحقق من قسم "تحليل الجمل" لرؤية الأجزاء المشتبه بها.</div>
         </div>
         <div class="faq-item">
-          <div class="faq-q" onclick="toggleFaq(this)">هل يمكن "خداع" الأداة؟<span class="faq-chevron">▼</span></div>
-          <div class="faq-a">نعم، يمكن نظرياً. بعض الأدوات تُعيد صياغة نصوص AI لتبدو أكثر طبيعية. هذه الأداة تُحلّل أنماطاً عميقة وليس فقط كلمات بعينها، مما يجعلها أصعب خداعاً — لكنها ليست محصّنة بالكامل.</div>
+          <div class="faq-q" onclick="toggleFaq(this)">هل يمكن "خداع" الأداة بإعادة الصياغة؟<span class="faq-chevron">▼</span></div>
+          <div class="faq-a">الأداة الآن تتضمن كاشفاً متخصصاً لإعادة الصياغة يرصد بصمات أدوات مثل QuillBot وSpinbot والنماذج المشابهة. يُحلّل النظام التماثل الدلالي وأنماط الإحلال المعجمي والتسوية الهيكلية — وهي علامات واضحة تتركها أدوات إعادة الصياغة حتى بعد تغيير الكلمات.</div>
         </div>
         <div class="faq-item">
           <div class="faq-q" onclick="toggleFaq(this)">هل تعمل مع جميع نماذج AI؟<span class="faq-chevron">▼</span></div>
@@ -540,7 +560,7 @@
       <span class="step" id="s2">Perplexity</span>
       <span class="step" id="s3">Burstiness</span>
       <span class="step" id="s4">الأنماط</span>
-      <span class="step" id="s5">توقع ذاتي</span>
+      <span class="step" id="s5">إعادة الصياغة</span>
       <span class="step" id="s6">الحكم النهائي</span>
     </div>
   </div>
@@ -554,16 +574,38 @@
     <!-- TEXT STATS -->
     <div class="text-stats-row" id="textStatsResult"></div>
 
-    <!-- SELF PREDICTION -->
-    <div class="self-pred" id="selfPred">
-      <div class="self-pred-icon">🔮</div>
-      <div class="self-pred-body">
-        <div class="self-pred-title">التوقع الذاتي للأداة</div>
-        <div class="self-pred-text" id="selfPredText"></div>
-        <div class="self-pred-conf">
-          ثقة الأداة بتوقعها: <span id="selfPredConf"></span>
-          <div class="conf-bar"><div class="conf-fill" id="confFill"></div></div>
+    <!-- PARAPHRASE DETECTION -->
+    <div class="para-section" id="paraSection">
+      <div class="para-header">
+        <div class="para-icon">🔄</div>
+        <div class="para-title">كشف إعادة الصياغة بالذكاء الاصطناعي</div>
+        <div class="para-badge" id="paraBadge">—</div>
+      </div>
+      <div class="para-desc" id="paraDesc">—</div>
+      <div class="para-signals" id="paraSignals"></div>
+    </div>
+
+    <!-- ORIGIN ANALYSIS -->
+    <div class="origin-section" id="originSection">
+      <div class="origin-header">
+        <span style="font-size:18px;">🧬</span>
+        <div class="origin-title">تحليل أصل النص ومصدره</div>
+      </div>
+      <div class="origin-grid">
+        <div class="origin-card">
+          <div class="origin-card-title">📍 المصدر المحتمل</div>
+          <div class="origin-card-val" id="originSource">—</div>
+          <div class="origin-card-desc" id="originSourceDesc">—</div>
         </div>
+        <div class="origin-card">
+          <div class="origin-card-title">🖨️ البصمة الرقمية</div>
+          <div class="origin-card-val" id="originFingerprint">—</div>
+          <div class="origin-card-desc" id="originFingerprintDesc">—</div>
+        </div>
+      </div>
+      <div class="origin-timeline">
+        <div class="origin-timeline-title">🔍 مسار التحليل:</div>
+        <div id="originTimeline"></div>
       </div>
     </div>
 
@@ -626,11 +668,6 @@
       <div class="tags" id="tags"></div>
     </div>
 
-    <!-- SELF CONFIDENCE SECTION -->
-    <div class="section" id="selfAnalysisSection">
-      <div class="section-head">🧠 تحليل الأداة لقدرتها الذاتية</div>
-      <p class="reasoning-text" id="selfAnalysisText"></p>
-    </div>
 
   </div>
 
@@ -841,7 +878,7 @@ const steps = ['s1','s2','s3','s4','s5','s6'];
 const msgs  = [
   'يقرأ النص بعمق...','يقيس مستوى التشابك اللغوي...',
   'يحلل تفاوت الجمل...','يفحص الأنماط الآلية...',
-  'يقيّم قدرته الذاتية...','يُعد الحكم النهائي...'
+  'يحلل إعادة الصياغة...','يُعد الحكم النهائي...'
 ];
 
 // ── ANALYZE ─────────────────────────────────────────────────────────────────
@@ -905,7 +942,7 @@ async function analyze() {
   }
 
   const wordCount = stats.words;
-  const prompt = `You are an expert AI text detection system. Analyze the text below with high precision and return ONLY a valid JSON object.
+  const prompt = `You are an expert AI text detection system with advanced capabilities to detect paraphrased AI content and analyze text origin. Analyze the text below with high precision and return ONLY a valid JSON object.
 
 DOCUMENT INFO: ${wordCount.toLocaleString()} words total${text.length > 180000 ? ' (representative sample shown: start + middle + end)' : ''}.
 
@@ -928,18 +965,35 @@ Return ONLY this exact JSON structure — no markdown, no extra text, no comment
   "reasoning": "<1-2 sentences in Arabic explaining main signals>",
   "sentences": [<"ai"|"human"|"neutral" for each of the ${sentsForPrompt.length} sentences>],
   "indicators": ["<Arabic phrase 1>","<Arabic phrase 2>","<Arabic phrase 3>"],
-  "self_prediction": {
-    "confidence": <0-100 integer — how confident the tool itself is in THIS specific prediction>,
-    "explanation": "<Arabic: why the tool is or isn't confident — e.g. text too short, mixed signals, strong clear patterns>",
-    "self_analysis": "<Arabic: honest reflection on the tool's own limitations for this text — language, length, domain, style>"
+  "paraphrase_detection": {
+    "is_paraphrased": <true|false — was this originally AI text that was reworded by human or AI paraphrase tools?>,
+    "paraphrase_probability": <0-100 integer — probability this is AI-paraphrased content>,
+    "level": <"high"|"medium"|"low" — risk level of AI paraphrasing detected>,
+    "signals": ["<Arabic: specific signal 1>","<Arabic: specific signal 2>","<Arabic: specific signal 3>"],
+    "description": "<Arabic: 2-3 sentences explaining paraphrase analysis findings — semantic uniformity, structural patterns, vocabulary substitution traces>",
+    "tool_traces": ["<Arabic: specific paraphrase tool fingerprint if detected, e.g. QuillBot patterns, Spinbot style>"]
+  },
+  "origin_analysis": {
+    "likely_source": "<Arabic: most probable origin — e.g. GPT-4, Claude, Gemini, Human Academic, Human Casual, Paraphrase Tool>",
+    "source_confidence": <0-100 integer>,
+    "source_description": "<Arabic: brief explanation of why this source is suspected>",
+    "digital_fingerprint": "<Arabic: describe the stylistic fingerprint detected — e.g. GPT-style structured paragraphs, Claude-style qualifications, academic template>",
+    "fingerprint_description": "<Arabic: detailed fingerprint analysis>",
+    "origin_timeline": [
+      "<Arabic: step 1 of how the text likely evolved — e.g. originally generated by AI>",
+      "<Arabic: step 2 — e.g. then paraphrased using tool>",
+      "<Arabic: step 3 — e.g. minor manual edits applied>"
+    ],
+    "transferred_patterns": ["<Arabic: specific pattern 1 transferred from AI>","<Arabic: specific pattern 2>"]
   }
 }
 
 Rules:
 - verdict: "ai" if ai_probability>=70, "human" if <=35, else "mixed"
 - sentences array must have EXACTLY ${sentsForPrompt.length} elements
-- All Arabic text under 120 chars each
-- self_prediction.confidence reflects how reliable THIS result is (not overall tool accuracy)`;
+- All Arabic text under 150 chars each
+- paraphrase_detection.level: "high" if paraphrase_probability>=65, "medium" if >=35, else "low"
+- origin_analysis.origin_timeline must have 2-4 steps describing the text's likely journey`;
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -1000,13 +1054,39 @@ function render(r) {
   ].map(s => `<div class="tstat"><div class="tstat-val">${s.v.toLocaleString()}</div><div class="tstat-lbl">${s.l}</div></div>`).join('');
   document.getElementById('textStatsResult').innerHTML = statsHTML;
 
-  // Self prediction
-  const sp = r.self_prediction || {};
-  const conf = Math.round(sp.confidence || 50);
-  document.getElementById('selfPredText').textContent = sp.explanation || '—';
-  document.getElementById('selfPredConf').textContent = conf + '%';
-  document.getElementById('confFill').style.width = conf + '%';
-  document.getElementById('selfAnalysisText').textContent = sp.self_analysis || '—';
+  // Paraphrase Detection
+  const pd = r.paraphrase_detection || {};
+  const paraLevel = pd.level || 'low';
+  const paraProb = Math.round(pd.paraphrase_probability || 0);
+  const paraBadge = document.getElementById('paraBadge');
+  paraBadge.className = 'para-badge ' + paraLevel;
+  const paraLabels = { high: '🔴 احتمالية إعادة صياغة عالية ' + paraProb + '%', medium: '🟡 احتمالية متوسطة ' + paraProb + '%', low: '🟢 احتمالية منخفضة ' + paraProb + '%' };
+  paraBadge.textContent = paraLabels[paraLevel] || '—';
+  document.getElementById('paraDesc').textContent = pd.description || '—';
+  const paraSignalsEl = document.getElementById('paraSignals');
+  paraSignalsEl.innerHTML = '';
+  const allSignals = [...(pd.signals || []), ...(pd.tool_traces || [])];
+  allSignals.forEach(sig => {
+    const s = document.createElement('div');
+    s.className = 'para-signal';
+    s.textContent = '⚡ ' + sig;
+    paraSignalsEl.appendChild(s);
+  });
+
+  // Origin Analysis
+  const oa = r.origin_analysis || {};
+  document.getElementById('originSource').textContent = oa.likely_source || '—';
+  document.getElementById('originSourceDesc').textContent = oa.source_description || '—';
+  document.getElementById('originFingerprint').textContent = oa.digital_fingerprint || '—';
+  document.getElementById('originFingerprintDesc').textContent = oa.fingerprint_description || '—';
+  const tlEl = document.getElementById('originTimeline');
+  tlEl.innerHTML = '';
+  (oa.origin_timeline || []).forEach(step => {
+    const d = document.createElement('div');
+    d.className = 'origin-step';
+    d.innerHTML = '<div class="origin-dot"></div><div class="origin-step-text">' + step + '</div>';
+    tlEl.appendChild(d);
+  });
 
   // Verdict card
   const vcard = document.getElementById('vcard');
