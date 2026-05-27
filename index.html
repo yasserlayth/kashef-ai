@@ -476,6 +476,58 @@ textarea::placeholder{color:var(--text3)}
   display:flex;align-items:center;gap:4px;
 }
 
+/* ═══ SELF PREDICTION ═══ */
+.self-pred-section{
+  display:none;
+  background:linear-gradient(135deg,rgba(245,166,35,0.06),rgba(124,92,252,0.04));
+  border:1px solid rgba(245,166,35,0.3);
+  border-radius:var(--radius);padding:1.25rem;margin-bottom:1.25rem;
+  position:relative;overflow:hidden;
+}
+.self-pred-section::before{
+  content:'';position:absolute;top:0;right:0;
+  width:160px;height:160px;border-radius:50%;
+  background:radial-gradient(ellipse,rgba(245,166,35,0.07),transparent 70%);
+  pointer-events:none;
+}
+.self-pred-section.show{display:block}
+.self-pred-header{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.self-pred-icon{
+  width:38px;height:38px;border-radius:10px;
+  background:rgba(245,166,35,0.12);
+  display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;
+}
+.self-pred-title{font-size:13px;font-weight:700;color:var(--yellow)}
+.self-pred-subtitle{font-size:11px;color:var(--text3);margin-top:1px}
+.self-pred-body{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+@media(max-width:520px){.self-pred-body{grid-template-columns:1fr}}
+.self-pred-card{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:.9rem 1rem;
+}
+.self-pred-card-label{font-size:10px;color:var(--text3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.self-pred-verdict{font-size:14px;font-weight:700;color:var(--yellow);margin-bottom:4px}
+.self-pred-conf{font-size:11px;color:var(--text2)}
+.self-pred-doubt{
+  font-size:12px;color:var(--text2);line-height:1.8;
+  background:rgba(245,166,35,0.06);border-right:2px solid var(--yellow);
+  border-radius:0 var(--radius-sm) var(--radius-sm) 0;
+  padding:.75rem 1rem;margin-top:10px;
+}
+.self-pred-obs{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.self-pred-ob{
+  font-size:11px;color:var(--yellow);
+  background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.2);
+  border-radius:8px;padding:4px 10px;
+}
+.self-pred-pulse{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:10px;font-family:var(--mono);color:var(--yellow);
+  background:rgba(245,166,35,0.1);border:1px solid rgba(245,166,35,0.25);
+  border-radius:20px;padding:3px 10px;margin-right:auto;
+}
+.self-pred-pulse::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--yellow);animation:pulse 1.5s ease infinite}
+
 /* ═══ ORIGIN ═══ */
 .origin-section{
   background:var(--surface);border:1px solid var(--border);
@@ -825,6 +877,31 @@ textarea::placeholder{color:var(--text3)}
       </div>
       <div class="para-desc" id="paraDesc">—</div>
       <div class="para-signals" id="paraSignals"></div>
+    </div>
+
+    <!-- SELF PREDICTION -->
+    <div class="self-pred-section" id="selfPredSection">
+      <div class="self-pred-header">
+        <div class="self-pred-icon">🔮</div>
+        <div>
+          <div class="self-pred-title">التوقع الذاتي — منطقة الشك</div>
+          <div class="self-pred-subtitle">يُفعَّل حصراً عند احتمالية إعادة صياغة متوسطة</div>
+        </div>
+        <div class="self-pred-pulse" id="selfPredPulse">جارٍ التحليل العميق</div>
+      </div>
+      <div class="self-pred-body">
+        <div class="self-pred-card">
+          <div class="self-pred-card-label">الحكم النهائي</div>
+          <div class="self-pred-verdict" id="selfPredVerdict">—</div>
+          <div class="self-pred-conf" id="selfPredConf">—</div>
+        </div>
+        <div class="self-pred-card">
+          <div class="self-pred-card-label">سبب الشك الأولي</div>
+          <div class="self-pred-doubt" id="selfPredDoubt">—</div>
+        </div>
+      </div>
+      <div class="self-pred-card-label">الملاحظات الحاسمة</div>
+      <div class="self-pred-obs" id="selfPredObs"></div>
     </div>
 
     <!-- ORIGIN ANALYSIS -->
@@ -1184,6 +1261,14 @@ Return ONLY this exact JSON structure — no markdown, no extra text, no comment
       "<Arabic: step 3 — e.g. minor manual edits applied>"
     ],
     "transferred_patterns": ["<Arabic: specific pattern 1 transferred from AI>","<Arabic: specific pattern 2>"]
+  },
+  "self_prediction": {
+    "IMPORTANT": "ONLY populate this object if paraphrase_detection.level is exactly 'medium' (35-64%). If level is 'high' or 'low', set all fields to null",
+    "active": <true if paraphrase level is medium, false otherwise>,
+    "final_verdict": "<Arabic: definitive conclusion after deep analysis — is this paraphrased AI or not? Be decisive. Max 100 chars>",
+    "confidence": <0-100 integer — confidence in the final verdict>,
+    "doubt_reason": "<Arabic: why initial doubt existed — what mixed signals were detected. Max 120 chars>",
+    "key_observations": ["<Arabic: decisive observation 1>","<Arabic: decisive observation 2>","<Arabic: decisive observation 3>"]
   }
 }
 
@@ -1192,7 +1277,8 @@ Rules:
 - sentences array must have EXACTLY ${sentsForPrompt.length} elements
 - All Arabic text under 150 chars each
 - paraphrase_detection.level: "high" if paraphrase_probability>=65, "medium" if >=35, else "low"
-- origin_analysis.origin_timeline must have 2-4 steps describing the text's likely journey`;
+- origin_analysis.origin_timeline must have 2-4 steps describing the text's likely journey
+- self_prediction.active = true ONLY when paraphrase_detection.level === "medium"`;
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -1271,6 +1357,28 @@ function render(r) {
     s.textContent = '⚡ ' + sig;
     paraSignalsEl.appendChild(s);
   });
+
+  // Self Prediction — only shown when paraphrase level is medium
+  const sp = r.self_prediction || {};
+  const spSection = document.getElementById('selfPredSection');
+  if (sp.active === true && paraLevel === 'medium') {
+    spSection.classList.add('show');
+    document.getElementById('selfPredVerdict').textContent = sp.final_verdict || '—';
+    const conf = sp.confidence != null ? sp.confidence + '% ثقة في الحكم' : '—';
+    document.getElementById('selfPredConf').textContent = conf;
+    document.getElementById('selfPredDoubt').textContent = sp.doubt_reason || '—';
+    document.getElementById('selfPredPulse').textContent = 'تحليل عميق نشط';
+    const obsEl = document.getElementById('selfPredObs');
+    obsEl.innerHTML = '';
+    (sp.key_observations || []).forEach(obs => {
+      const o = document.createElement('div');
+      o.className = 'self-pred-ob';
+      o.textContent = '🔍 ' + obs;
+      obsEl.appendChild(o);
+    });
+  } else {
+    spSection.classList.remove('show');
+  }
 
   // Origin Analysis
   const oa = r.origin_analysis || {};
