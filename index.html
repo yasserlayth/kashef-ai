@@ -1331,7 +1331,7 @@ mark.ptv-mark.current{background:rgba(201,168,76,.7);}
           <div style="font-size:2.5rem;margin-bottom:.8rem;">📄</div>
           <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:.4rem;">اسحب ملف PDF هنا أو انقر للاختيار</div>
           <div style="font-size:12px;color:var(--text3);">يدعم PDF عربي وإنجليزي · حد أقصى 100MB · حتى 60 صفحة بصرياً</div>
-          <div style="font-size:11px;color:var(--gold);margin-top:6px;font-family:var(--mono);">👁️ Vision OCR — تصوير كل صفحة وقراءتها بصرياً · نص نظيف 100% بلا لخبطة</div>
+          <div style="font-size:11px;color:var(--gold);margin-top:6px;font-family:var(--mono);">👁️ Vision OCR — تصوير كل صفحة وقراءتها بصرياً</div>
           <input type="file" id="pdfFileInput" accept=".pdf" style="display:none" onchange="handlePdfFile(this.files[0])">
         </div>
 
@@ -1362,6 +1362,9 @@ mark.ptv-mark.current{background:rgba(201,168,76,.7);}
 
           <!-- إحصائيات بعد القراءة -->
           <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;" id="pdfStatsGrid"></div>
+
+          <!-- تحذير بالوقت المتوقع للتحليل -->
+          <div id="pdfTimeWarn" style="display:none;margin-top:.6rem;font-size:11.5px;color:var(--gold2);background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.2);border-radius:6px;padding:.5rem .7rem;"></div>
 
           <!-- معاينة الصفحة الأولى -->
           <div style="margin-top:.8rem;">
@@ -1397,8 +1400,8 @@ mark.ptv-mark.current{background:rgba(201,168,76,.7);}
         <!-- كود ٢ محذوف — التحليل يعمل تلقائياً عند الضغط على زر التحليل -->
         <div id="pdfAiCodeBlock" style="display:none;"></div>
         <!-- placeholder hidden — kept for JS compatibility -->
-        <div style="display:none;"><pre><code>// ═══ كود ٢: تحليل النص بالذكاء الاصطناعي ═══
-// الواجهة: Anthropic API · claude-sonnet-4-20250514
+        <div style="display:none;"><pre><code>// ═══ كود ٢: تحليل النص بالذكاء الاصطناعي (streaming) ═══
+// الواجهة: Anthropic API · claude-sonnet-4-6
 
 const response = await fetch('https://api.anthropic.com/v1/messages', {
   method: 'POST',
@@ -1409,8 +1412,9 @@ const response = await fetch('https://api.anthropic.com/v1/messages', {
     'anthropic-dangerous-direct-browser-access': 'true'
   },
   body: JSON.stringify({
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-sonnet-4-6',
     max_tokens: 32000,
+    stream: true, // streaming يمنع انقطاع الاتصال في الطلبات الطويلة
     messages: [{
       role: 'user',
       content: prompt  // ← يحتوي على النص المستخرج من PDF
@@ -2109,7 +2113,7 @@ function setReadProgress(msg,pct){
 }
 
 // ── تصوير صفحة واحدة → base64 JPEG بدقة عالية ──
-async function renderPageToBase64(page, scale=2.5){
+async function renderPageToBase64(page, scale=1.8){
   const viewport=page.getViewport({scale});
   const canvas=document.createElement('canvas');
   canvas.width=Math.round(viewport.width);
@@ -2118,7 +2122,7 @@ async function renderPageToBase64(page, scale=2.5){
   ctx.fillStyle='#ffffff';
   ctx.fillRect(0,0,canvas.width,canvas.height);
   await page.render({canvasContext:ctx,viewport,intent:'print'}).promise;
-  return canvas.toDataURL('image/jpeg',0.95).split(',')[1];
+  return canvas.toDataURL('image/jpeg',0.85).split(',')[1];
 }
 
 async function handlePdfFile(file){
@@ -2157,7 +2161,7 @@ async function handlePdfFile(file){
         setReadProgress(`🖼️ جارٍ معالجة الصفحة ${p} من ${pagesToRender}…`,pct);
         const page=await pdf.getPage(p);
         // تصوير
-        const b64=await renderPageToBase64(page,2.5);
+        const b64=await renderPageToBase64(page,1.8);
         pdfRenderedPages.push({pageNum:p,b64});
         // استخراج النص
         try{
@@ -2171,7 +2175,11 @@ async function handlePdfFile(file){
       pdfExtractedText=allTextParts.join('\n\n').trim();
       pdfLoaded=true;
 
-      // إذا كان هناك نص مستخرج استخدمه، وإلا اعتمد Vision
+      // ⚠️ ملاحظة مهمة: pdfText هنا هو تقدير تقريبي فقط (من PDF.js) يُستخدم لعرض
+      // عداد كلمات مبدئي وتحديد نمط التحليل (سريع/كامل) قبل الضغط على "تحليل".
+      // هذا النص قد يكون ملخبطاً في حالة النصوص العربية ولا يُستخدم إطلاقاً في
+      // التحليل الفعلي — التحليل الحقيقي يعتمد على استخراج Claude Vision للصور
+      // مباشرة عند الضغط على زر "تحليل" (انظر دالة analyze).
       if(pdfExtractedText.split(/\s+/).filter(Boolean).length>=20){
         pdfText=pdfExtractedText;
       } else {
@@ -2190,7 +2198,7 @@ async function handlePdfFile(file){
         {v:pagesToRender+(truncated?'/'+totalPages:''),l:'صفحة مُعالَجة'},
         {v:sizeDisplay,l:'حجم الملف'},
         {v:totalPages,l:'إجمالي الصفحات'},
-        {v:hasRealText?'نص + Vision':'Vision OCR',l:'طريقة القراءة'}
+        {v:'بانتظار AI',l:'استخراج النص'}
       ].map(s=>`<div style="background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:.5rem;text-align:center;">
         <div style="font-size:13px;font-weight:800;color:var(--gold);word-break:break-all;">${s.v}</div>
         <div style="font-size:10px;color:var(--text3);margin-top:2px;">${s.l}</div>
@@ -2210,10 +2218,9 @@ async function handlePdfFile(file){
         previewEl.textContent='تم معالجة الصفحات — اضغط تحليل لبدء القراءة';
       }
 
-      // عرض النص الكامل المستخرج في العارض
-      if(hasRealText){
-        ptvShowText(pdfExtractedText);
-      }
+      // ملاحظة: لا نعرض نص PDF.js الخام هنا لأنه غالباً ملخبط في النصوص العربية.
+      // النص الصحيح سيظهر في العارض فقط بعد الضغط على "تحليل" واستخراجه عبر Claude Vision.
+      document.getElementById('pdfTextViewer').style.display='none';
 
       // شارة
       const fileNameEl=document.getElementById('pdfFileName');
@@ -2221,8 +2228,16 @@ async function handlePdfFile(file){
         const badge=document.createElement('span');
         badge.className='vision-badge';
         badge.style.cssText='font-size:10px;background:rgba(201,168,76,.15);color:var(--gold);border:1px solid rgba(201,168,76,.3);border-radius:4px;padding:2px 8px;margin-right:8px;font-family:var(--mono);vertical-align:middle;';
-        badge.textContent=hasRealText?'📃 نص مستخرج + 👁️ Vision':'👁️ Vision OCR';
+        badge.textContent='👁️ سيتم استخراج النص بالذكاء الاصطناعي عند التحليل';
         fileNameEl.appendChild(badge);
+      }
+
+      // تحذير بالوقت المتوقع — كلما زادت الصفحات يطول الانتظار
+      const timeWarnEl=document.getElementById('pdfTimeWarn');
+      if(timeWarnEl){
+        const estMin=pagesToRender<=5?'نصف دقيقة إلى دقيقة':pagesToRender<=15?'دقيقة إلى دقيقتين':'دقيقتين إلى 3 دقائق';
+        timeWarnEl.style.display='block';
+        timeWarnEl.textContent='⏳ بسبب عدد الصفحات ('+pagesToRender+')، قد يستغرق التحليل '+estMin+' — الرجاء الانتظار دون إغلاق الصفحة.';
       }
 
       setTimeout(()=>{
@@ -2320,11 +2335,144 @@ function removePDF(){
   document.getElementById('pdfAiCodeBlock').style.display='none';
   document.getElementById('pdfReadProgress').style.display='none';
   document.getElementById('pdfTextViewer').style.display='none';
+  const tw=document.getElementById('pdfTimeWarn');if(tw)tw.style.display='none';
   document.getElementById('pdfFileInput').value='';
   updateWC();
 }
 function clearAll(){txtEl.value='';updateStats();removePDF();document.getElementById('result').classList.remove('show');document.getElementById('emptyState').style.display='block';document.getElementById('errBox').classList.remove('show');}
 function showError(msg){const el=document.getElementById('errBox');const msgEl=document.getElementById('errMsg');if(msgEl)msgEl.textContent=msg;el.classList.add('show');}
+
+// ═══════════════════════════════════════════════════════════════
+//  اتصال متدفق (Streaming) بـ Anthropic API
+// ═══════════════════════════════════════════════════════════════
+// لماذا streaming؟ لأن الطلبات ذات max_tokens الكبيرة (مثل تحليلنا الذي
+// يصل حتى 32000) قد تستغرق دقائق طويلة قبل وصول أي رد، وبعض الشبكات
+// (شركات/فلاتر/بروكسي) تُسقط الاتصالات الخاملة بعد فترة قصيرة — هذا هو
+// السبب الفعلي وراء رسالة "انتهت مهلة الانتظار" السابقة، وليس بالضرورة
+// أن الخادم بطيء. مع streaming تصل البيانات أولاً بأول فور توفرها، لذا
+// نستخدم "مهلة خمول" (idle timeout) تُعاد كل مرة تصل فيها بيانات جديدة،
+// بدل مهلة ثابتة واحدة تُلغي الطلب حتى لو كان يعمل بشكل طبيعي وبطيء فقط.
+//
+// ملاحظة مهمة: لا نستخدم AbortController/AbortSignal هنا عمداً — في بعض
+// بيئات المعاينة (إضافات المتصفح أو أدوات تعرض الصفحة داخل iframe وتمرر
+// طلبات الشبكة عبر postMessage) لا يمكن نسخ كائن AbortSignal، فيتعطل
+// الطلب فوراً برسالة "AbortSignal object could not be cloned". لذلك
+// نطبّق المهلة الزمنية عبر Promise.race مع reader.cancel() بدلاً من ذلك،
+// وهي طريقة متوافقة مع كل البيئات دون أي اعتماد على AbortSignal.
+async function streamClaudeMessage(apiKey,messageContent,maxTokens,opts){
+  opts=opts||{};
+  const idleTimeoutMs=opts.idleTimeoutMs||45000;     // لا بيانات لـ45 ثانية = اتصال منقطع فعلياً
+  const totalTimeoutMs=opts.totalTimeoutMs||420000;   // سقف أمان مطلق (7 دقائق) لمنع التعليق الأبدي
+  const model=opts.model||'claude-sonnet-4-6';
+  const startedAt=Date.now();
+  const timeoutMsg=(kind)=>kind==='IDLE'
+    ?'انقطع الاتصال بالخادم (لم يصل أي رد لمدة 45 ثانية). تحقّق من اتصالك بالإنترنت وحاول مجدداً.'
+    :'تجاوز الطلب الحد الأقصى للوقت. جرّب تقليل عدد الصفحات أو تحقّق من اتصالك بالإنترنت.';
+
+  // ── الاتصال الأولي (بانتظار أول استجابة من الخادم) ──
+  let res;
+  try{
+    const fetchPromise=fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model,max_tokens:maxTokens,stream:true,messages:[{role:'user',content:messageContent}]})
+    });
+    const connectTimeout=new Promise((_,reject)=>setTimeout(()=>reject(new Error('CONNECT_TIMEOUT')),idleTimeoutMs));
+    res=await Promise.race([fetchPromise,connectTimeout]);
+  }catch(e){
+    if(e.message==='CONNECT_TIMEOUT')throw new Error(timeoutMsg('IDLE'));
+    throw new Error('تعذّر الاتصال بالخادم: '+e.message);
+  }
+  if(!res.ok){
+    const err=await res.json().catch(()=>({}));
+    throw new Error(err.error?.message||'خطأ HTTP '+res.status);
+  }
+
+  // ── قراءة البث ──
+  const reader=res.body.getReader();
+  const decoder=new TextDecoder();
+  let buf='',fullText='';
+  while(true){
+    if(Date.now()-startedAt>totalTimeoutMs){
+      reader.cancel().catch(()=>{});
+      throw new Error(timeoutMsg('TOTAL'));
+    }
+    const idlePromise=new Promise((_,reject)=>setTimeout(()=>reject(new Error('IDLE_TIMEOUT')),idleTimeoutMs));
+    let chunk;
+    try{
+      chunk=await Promise.race([reader.read(),idlePromise]);
+    }catch(readErr){
+      reader.cancel().catch(()=>{});
+      if(readErr.message==='IDLE_TIMEOUT')throw new Error(timeoutMsg('IDLE'));
+      throw new Error('انقطع الاتصال أثناء استقبال البيانات: '+readErr.message);
+    }
+    const{done,value}=chunk;
+    if(done)break;
+    buf+=decoder.decode(value,{stream:true});
+    const parts=buf.split('\n\n');
+    buf=parts.pop();
+    for(const part of parts){
+      let dataStr='';
+      for(const line of part.split('\n'))if(line.startsWith('data:'))dataStr+=line.slice(5).trim();
+      if(!dataStr)continue;
+      let evt;
+      try{evt=JSON.parse(dataStr);}catch(_){continue;}
+      if(evt.type==='content_block_delta'&&evt.delta&&evt.delta.type==='text_delta'){
+        fullText+=evt.delta.text;
+        if(opts.onChunk)opts.onChunk(fullText);
+      }else if(evt.type==='error'){
+        reader.cancel().catch(()=>{});
+        throw new Error(evt.error?.message||'خطأ غير معروف من الخادم');
+      }
+    }
+  }
+  return fullText;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  استخراج نص PDF عبر Vision — على دفعات صغيرة بدل طلب ضخم واحد
+// ═══════════════════════════════════════════════════════════════
+// المشكلة السابقة: كل صفحات الملف (حتى 20 صورة) كانت تُرسل في طلب واحد
+// مع max_tokens=32000 لاستخراج النص + التحليل معاً — هذا قد يستغرق وقتاً
+// طويلاً جداً ويزيد فرص الانقطاع. الحل: نقسّم الصفحات إلى دفعات صغيرة
+// (4 صفحات لكل طلب)، كل دفعة تُستخرج بطلب مستقل وسريع نسبياً، مع إعادة
+// محاولة تلقائية مرة واحدة عند فشل أي دفعة، ثم تُجمَّع النتائج كنص واحد
+// نظيف يمر بعدها على نفس مسار "تحليل النص" المستخدم في وضع الإدخال المباشر.
+const OCR_BATCH_SIZE=4;
+const OCR_TOKENS_PER_PAGE=2500;
+
+async function extractPdfTextViaVision(apiKey,onProgress){
+  const total=pdfRenderedPages.length;
+  const batches=[];
+  for(let i=0;i<total;i+=OCR_BATCH_SIZE)batches.push(pdfRenderedPages.slice(i,i+OCR_BATCH_SIZE));
+  const allText=[];
+  for(let bi=0;bi<batches.length;bi++){
+    const batch=batches[bi];
+    const fromPage=batch[0].pageNum,toPage=batch[batch.length-1].pageNum;
+    const meta={fromPage,toPage,batchIndex:bi,totalBatches:batches.length};
+    onProgress({phase:'start',...meta});
+    const imageBlocks=batch.map(p=>({type:'image',source:{type:'base64',media_type:'image/jpeg',data:p.b64}}));
+    const prompt=`You are transcribing scanned document page images (likely Arabic) into clean text.
+Read each image carefully and transcribe the FULL text exactly as written, preserving correct Arabic letter order, word boundaries, and paragraph breaks. Do not summarize, translate, or omit anything — transcribe verbatim, like a human reading the image visually. Separate the text of each page with a line containing exactly: ===PAGE_BREAK===
+Return ONLY the transcribed text. No JSON, no commentary, no markdown fences.`;
+    const content=[{type:'text',text:prompt},...imageBlocks];
+    const maxTokens=Math.min(16000,OCR_TOKENS_PER_PAGE*batch.length);
+    let batchText=null,lastErr=null;
+    for(let attempt=0;attempt<2&&batchText===null;attempt++){
+      if(attempt>0)onProgress({phase:'retry',...meta});
+      try{
+        batchText=await streamClaudeMessage(apiKey,content,maxTokens,{
+          idleTimeoutMs:45000,totalTimeoutMs:240000,
+          onChunk:(acc)=>onProgress({phase:'progress',chars:acc.length,...meta})
+        });
+      }catch(e){lastErr=e;}
+    }
+    if(batchText===null)throw new Error(`فشل استخراج الصفحات ${fromPage}–${toPage}: ${lastErr.message}`);
+    allText.push(batchText.replace(/===PAGE_BREAK===/g,'\n\n').trim());
+    onProgress({phase:'done',...meta});
+  }
+  return allText.join('\n\n').trim();
+}
 
 // ANALYZE
 const steps=['s1','s2','s3','s4','s5','s6'];
@@ -2334,33 +2482,78 @@ async function analyze(){
   const apiKey=document.getElementById('apiKey').value.trim();
   if(!apiKey){showError('الرجاء إدخال مفتاح Anthropic API أولاً.');return;}
   let text='';
+  const usePdfVision=(currentTab==='pdf');
   if(currentTab==='text'){text=txtEl.value.trim();if(!text||text.split(/\s+/).length<10){showError('الرجاء إدخال نص أطول (10 كلمات على الأقل).');return;}if(text.split(/\s+/).filter(Boolean).length>100000){showError('النص يتجاوز الحد الأقصى (100,000 كلمة).');return;}}
-  else{if(!pdfLoaded||!pdfText){showError('الرجاء رفع ملف PDF أولاً.');return;}text=pdfText;}
+  else{if(!pdfLoaded||!pdfRenderedPages.length){showError('الرجاء رفع ملف PDF أولاً.');return;}}
   document.getElementById('errBox').classList.remove('show');document.getElementById('result').classList.remove('show');document.getElementById('emptyState').style.display='none';
   const loading=document.getElementById('loading');loading.classList.add('active');document.getElementById('btnA').disabled=true;
   steps.forEach(s=>document.getElementById(s).className='step');
   let si=0;const msgEl=document.getElementById('loadmsg');
-  const stepInterval=setInterval(()=>{if(si>0)document.getElementById(steps[si-1]).className='step done';if(si<steps.length){document.getElementById(steps[si]).className='step active';msgEl.textContent=msgs[si];si++;}},800);
-  const clientSents=text.match(/[^.!?؟\n]+[.!?؟\n]*/g)||[text];
-  const sentsForPrompt=clientSents.slice(0,1500).map(s=>s.trim()).filter(Boolean);
-  const stats=countStats(text);
-  const MAX_CHARS=700000;let textForAnalysis=text;
-  if(text.length>MAX_CHARS){const chunk=Math.floor(MAX_CHARS/3);const start=text.slice(0,chunk);const mid=text.slice(Math.floor(text.length/2)-Math.floor(chunk/2),Math.floor(text.length/2)+Math.floor(chunk/2));const end=text.slice(text.length-chunk);textForAnalysis=start+'\n\n[... نص محذوف للاختصار ...]\n\n'+mid+'\n\n[... نص محذوف للاختصار ...]\n\n'+end;}
-  const wordCount=stats.words;
-  const prompt=`You are an expert AI text detection system with advanced capabilities to detect paraphrased AI content and analyze text origin. Analyze the text below with high precision and return ONLY a valid JSON object.
+  function setStep(i,label){
+    steps.forEach((s,idx)=>document.getElementById(s).className='step'+(idx<i?' done':idx===i?' active':''));
+    if(label)msgEl.textContent=label;
+  }
+  let stepInterval=null;
 
-DOCUMENT INFO: ${wordCount.toLocaleString()} words total${text.length>MAX_CHARS?' (representative sample shown: start + middle + end)':''}.
+  try{
+    if(usePdfVision){
+      setStep(0,'📤 جارٍ إرسال صور الصفحات إلى الذكاء الاصطناعي…');
+      text=await extractPdfTextViaVision(apiKey,function(p){
+        var pageInfo=p.totalBatches>1?(' (دفعة '+(p.batchIndex+1)+'/'+p.totalBatches+'، صفحات '+p.fromPage+'–'+p.toPage+')'):(' (صفحات '+p.fromPage+'–'+p.toPage+')');
+        if(p.phase==='start')msgEl.textContent='👁️ جارٍ استخراج النص العربي بدقة من الصور'+pageInfo+'…';
+        else if(p.phase==='progress')msgEl.textContent='👁️ جارٍ الاستخراج'+pageInfo+'… ('+p.chars.toLocaleString()+' حرف حتى الآن)';
+        else if(p.phase==='retry')msgEl.textContent='🔁 إعادة محاولة استخراج الصفحات '+p.fromPage+'–'+p.toPage+'…';
+        else if(p.phase==='done'&&p.batchIndex===0)setStep(1);
+      });
+      if(!text||text.split(/\s+/).filter(Boolean).length<10){
+        throw new Error('تعذّر استخراج نص كافٍ من ملف PDF — تأكد من أن الملف يحتوي على نص واضح أو صور مقروءة بدقة جيدة.');
+      }
+      pdfText=text;pdfExtractedText=text;
+      ptvShowText(text);
+      setStep(2,'🔢 جارٍ تقطيع الجمل المستخرجة…');
+    }
 
-TEXT:
-"""
-${textForAnalysis}
-"""
+    const clientSents=text.match(/[^.!?؟\n]+[.!?؟\n]*/g)||[text];
+    const sentsForPrompt=clientSents.slice(0,1500).map(function(s){return s.trim();}).filter(Boolean);
+    const stats=countStats(text);
+    const MAX_CHARS=700000;var textForAnalysis=text;
+    if(text.length>MAX_CHARS){var chunk=Math.floor(MAX_CHARS/3);var start=text.slice(0,chunk);var mid=text.slice(Math.floor(text.length/2)-Math.floor(chunk/2),Math.floor(text.length/2)+Math.floor(chunk/2));var end=text.slice(text.length-chunk);textForAnalysis=start+'\n\n[... نص محذوف للاختصار ...]\n\n'+mid+'\n\n[... نص محذوف للاختصار ...]\n\n'+end;}
+    const wordCount=stats.words;
+    const textPrompt='You are an expert AI text detection system with advanced capabilities to detect paraphrased AI content and analyze text origin. Analyze the text below with high precision and return ONLY a valid JSON object.\n\n'
+      +'DOCUMENT INFO: '+wordCount.toLocaleString()+' words total'+(text.length>MAX_CHARS?' (representative sample shown: start + middle + end)':'')+'.\n\n'
+      +'TEXT:\n"""\n'+textForAnalysis+'\n"""\n\n'
+      +'SENTENCES TO CLASSIFY (label each as "ai", "human", or "neutral"):\n'+JSON.stringify(sentsForPrompt)+'\n\n'
+      +'Return ONLY this exact JSON structure — no markdown, no extra text, no comments:\n{';
+    const messageContent=textPrompt+buildAnalysisJsonSpecBody(sentsForPrompt.length+' elements');
 
-SENTENCES TO CLASSIFY (label each as "ai", "human", or "neutral"):
-${JSON.stringify(sentsForPrompt)}
+    si=3;
+    const analysisMsgs=['🧠 جارٍ تحليل Perplexity…','📈 جارٍ تحليل Burstiness…','🔄 جارٍ كشف إعادة الصياغة…','🧬 جارٍ تحليل أصل النص…','⚖️ جارٍ إصدار الحكم النهائي…','⏳ المعالجة مستمرة، قد تستغرق دقيقة أو أكثر مع النصوص الطويلة…'];
+    stepInterval=setInterval(function(){
+      setStep(Math.min(si,steps.length-1),analysisMsgs[Math.min(si-3,analysisMsgs.length-1)]);
+      si++;
+    },2500);
 
-Return ONLY this exact JSON structure — no markdown, no extra text, no comments:
-{
+    const raw=await streamClaudeMessage(apiKey,messageContent,32000,{idleTimeoutMs:45000,totalTimeoutMs:420000});
+    clearInterval(stepInterval);stepInterval=null;
+    steps.forEach(function(s){document.getElementById(s).className='step done';});
+
+    const jstart=raw.indexOf('{');const jend=raw.lastIndexOf('}');
+    if(jstart===-1||jend===-1)throw new Error('لم يُرجع النموذج JSON صالح');
+    const r=JSON.parse(raw.slice(jstart,jend+1));
+    r._sentences=sentsForPrompt;
+    r._stats=stats;
+    loading.classList.remove('active');document.getElementById('btnA').disabled=false;
+    render(r);
+    setTimeout(function(){document.getElementById('result-section').scrollIntoView({behavior:'smooth',block:'start'});},300);
+  }catch(e){
+    if(stepInterval)clearInterval(stepInterval);
+    loading.classList.remove('active');document.getElementById('btnA').disabled=false;
+    showError(e.message);
+  }
+}
+
+// ── يبني فقط جزء حقول الـ JSON الخاصة بالكشف (مشترك بين وضع النص ووضع PDF) ──
+function buildAnalysisJsonSpecBody(sentenceCountRule){return `
   "ai_probability": <0-100 integer>,
   "verdict": <"ai"|"human"|"mixed">,
   "perplexity_score": <0-100>,
@@ -2368,7 +2561,7 @@ Return ONLY this exact JSON structure — no markdown, no extra text, no comment
   "vocabulary_diversity": <0-100>,
   "pattern_score": <0-100>,
   "reasoning": "<1-2 sentences in Arabic explaining main signals>",
-  "sentences": [<"ai"|"human"|"neutral" for each of the ${sentsForPrompt.length} sentences>],
+  "sentences": [<"ai"|"human"|"neutral" for each sentence — see rule below for exact count>],
   "indicators": ["<Arabic phrase 1>","<Arabic phrase 2>","<Arabic phrase 3>"],
   "paraphrase_detection": {
     "is_paraphrased": <true|false>,
@@ -2399,25 +2592,11 @@ Return ONLY this exact JSON structure — no markdown, no extra text, no comment
 
 Rules:
 - verdict: "ai" if ai_probability>=70, "human" if <=35, else "mixed"
-- sentences array must have EXACTLY ${sentsForPrompt.length} elements
+- sentences array must have EXACTLY ${sentenceCountRule}
 - All Arabic text under 150 chars each
 - paraphrase_detection.level: "high" if paraphrase_probability>=65, "medium" if >=35, else "low"
 - origin_analysis.origin_timeline must have 2-4 steps describing the text's likely journey
-- self_prediction.active = true ONLY when paraphrase_detection.level === "medium"`;
-
-  try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:32000,messages:[{role:'user',content:prompt}]})});
-    clearInterval(stepInterval);steps.forEach(s=>document.getElementById(s).className='step done');
-    if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(err.error?.message||'خطأ HTTP '+res.status);}
-    const data=await res.json();const raw=data.content.map(c=>c.text||'').join('');
-    const start=raw.indexOf('{');const end=raw.lastIndexOf('}');
-    if(start===-1||end===-1)throw new Error('لم يُرجع النموذج JSON صالح');
-    const r=JSON.parse(raw.slice(start,end+1));r._sentences=sentsForPrompt;r._stats=stats;
-    loading.classList.remove('active');document.getElementById('btnA').disabled=false;
-    render(r);
-    setTimeout(()=>{document.getElementById('result-section').scrollIntoView({behavior:'smooth',block:'start'});},300);
-  }catch(e){clearInterval(stepInterval);loading.classList.remove('active');document.getElementById('btnA').disabled=false;showError(e.message);}
-}
+- self_prediction.active = true ONLY when paraphrase_detection.level === "medium"`;}
 
 // RENDER
 function render(r){
@@ -2430,7 +2609,7 @@ function render(r){
   const isPdf=(currentTab==='pdf');
   aiBox.style.display='block';
   const stages=[
-    {icon:'📄',label:'قراءة الملف',used:isPdf,tool:isPdf?'معالجة داخلية للملف':'إدخال نص مباشر',ai:false},
+    {icon:'👁️',label:'استخراج النص من الصور',used:isPdf,tool:isPdf?'Claude Vision API (بدون لخبطة)':'إدخال نص مباشر',ai:isPdf},
     {icon:'🔢',label:'تقطيع الجمل',used:true,tool:'JavaScript محلي',ai:false},
     {icon:'🧠',label:'تحليل Perplexity',used:true,tool:'Claude API (كود ٢)',ai:true},
     {icon:'📈',label:'تحليل Burstiness',used:true,tool:'Claude API (كود ٢)',ai:true},
