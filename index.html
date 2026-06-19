@@ -99,6 +99,8 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--text);min
 body.device-desktop #cursor-dot,body.device-desktop #cursor-ring{display:block;}
 body.device-desktop{cursor:none!important;}
 body.device-desktop a,body.device-desktop button,body.device-desktop .sidebar-link,body.device-desktop .tab,body.device-desktop .accordion-trigger,body.device-desktop .faq-q,body.device-desktop .chip{cursor:none!important;}
+/* إخفاء المؤشر المخصص عند منطقة إدخال النص ورفع PDF */
+body.device-desktop textarea,body.device-desktop input[type="text"],body.device-desktop input[type="file"],body.device-desktop select,body.device-desktop .pdf-drop-zone,body.device-desktop #pdfPanel{cursor:auto!important;}
 .analysis-mode-option:hover{border-color:var(--border3)!important;background:var(--surface3);}
 .analysis-mode-option.selected{border-color:var(--gold)!important;background:var(--gold-dim);}
 @media(max-width:600px){#analysisModeBox div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important;}}
@@ -1766,6 +1768,11 @@ if(deviceType==='desktop'){
   document.querySelectorAll('a,button,.sidebar-link,.tab,.accordion-trigger,.faq-q,.chip,.about-card,.metric').forEach(el=>{
     el.addEventListener('mouseenter',()=>cursorRing.classList.add('hover'));
     el.addEventListener('mouseleave',()=>cursorRing.classList.remove('hover'));
+  });
+  // إخفاء المؤشر المخصص عند حقول الإدخال ومنطقة رفع PDF
+  document.querySelectorAll('textarea,input[type="text"],input[type="file"],input[type="password"],select,.pdf-drop-zone,#pdfPanel').forEach(el=>{
+    el.addEventListener('mouseenter',()=>{cursorDot.style.opacity='0';cursorRing.style.opacity='0';});
+    el.addEventListener('mouseleave',()=>{cursorDot.style.opacity='1';cursorRing.style.opacity='1';});
   });
   document.addEventListener('mouseleave',()=>{cursorDot.style.opacity='0';cursorRing.style.opacity='0';});
   document.addEventListener('mouseenter',()=>{cursorDot.style.opacity='1';cursorRing.style.opacity='1';});
